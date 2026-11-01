@@ -1,6 +1,6 @@
 {
   "name": "bambu-studio-mcp-workflow",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "date": "2026-11-01",
   "files": [
     {
@@ -15,13 +15,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "bytes": 949,
-      "sha256": "c4f9b478b1c8ad02f9e5281a6af1369dd8b8d4e4645daa55f652d82eed7135a5"
-    },
-    {
-      "path": "examples/printer-bindings.example.json",
-      "bytes": 235,
-      "sha256": "e30719118cbfd22772863a0a94b784546724d5cb9de50f9d67bd2a8f0b8a8adf"
+      "bytes": 1808,
+      "sha256": "9f2f31fba7cd7aa83fab46180191cc6ad54f7e214e16c87f61b005d9a220bc83"
     },
     {
       "path": "LICENSE",
@@ -30,8 +25,28 @@
     },
     {
       "path": "README.md",
-      "bytes": 6072,
-      "sha256": "a040f7db5c268c05b75af8e156f0ab2a0030356f9fe302ca0de57f144ecf561f"
+      "bytes": 6920,
+      "sha256": "f72de4e76a12d3f8f80daf4049e8284b9f6dddc5a4a0cf4ed736d0d56ad86168"
+    },
+    {
+      "path": "SECURITY.md",
+      "bytes": 3733,
+      "sha256": "69cdad74af648701eb667d3d775f22d77e0be8ac73641148e4cc339bb21e75b7"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "bytes": 1494,
+      "sha256": "04dc9837e3c0a06ebc6c22dc15ffd99cc9de6c92e368915a7e3d663f264e01ed"
+    },
+    {
+      "path": "VALIDATION.md",
+      "bytes": 3526,
+      "sha256": "5f9bbf66fe6f9fba3efc3672b474be6018a8258c5a27a7e84b0247a5b4ecedf4"
+    },
+    {
+      "path": "examples/printer-bindings.example.json",
+      "bytes": 235,
+      "sha256": "e30719118cbfd22772863a0a94b784546724d5cb9de50f9d67bd2a8f0b8a8adf"
     },
     {
       "path": "scripts/install.ps1",
@@ -39,9 +54,9 @@
       "sha256": "afbfd0a9d919fbe4f45304202cbce42a3593d81dcc5b159779331e77da4dd8fa"
     },
     {
-      "path": "SECURITY.md",
-      "bytes": 3733,
-      "sha256": "69cdad74af648701eb667d3d775f22d77e0be8ac73641148e4cc339bb21e75b7"
+      "path": "skills/bambu-print/SKILL.md",
+      "bytes": 7852,
+      "sha256": "2abfcc7f5ae96b5d9d59b9b4515d0ed39e2769abf09a14f14e1704014acaaf05"
     },
     {
       "path": "skills/bambu-print/agents/openai.yaml",
@@ -54,24 +69,24 @@
       "sha256": "ac74c8524b3b3acd811342e144a961760fd801496869cad3f2f062d734a6497b"
     },
     {
-      "path": "skills/bambu-print/SKILL.md",
-      "bytes": 7852,
-      "sha256": "2abfcc7f5ae96b5d9d59b9b4515d0ed39e2769abf09a14f14e1704014acaaf05"
-    },
-    {
-      "path": "THIRD_PARTY_NOTICES.md",
-      "bytes": 1494,
-      "sha256": "04dc9837e3c0a06ebc6c22dc15ffd99cc9de6c92e368915a7e3d663f264e01ed"
-    },
-    {
       "path": "tools/unofficial-bambu-mcp/apply_windows_patch.py",
       "bytes": 5112,
       "sha256": "9c333d945d6e666718b600b0962c9a85c09c55d3261e5d6b4aa5c5c6adc4bbea"
     },
     {
       "path": "tools/unofficial-bambu-mcp/enhanced_server.py",
-      "bytes": 17665,
-      "sha256": "59322126119567c35586af2e1c99b37bdfc246f5a059d2de1a89dbbefaa560d2"
+      "bytes": 18072,
+      "sha256": "0a749c0348dc28dc8d483582bd8aaa9d2cf79303adf6756b0f55c784f90296b5"
+    },
+    {
+      "path": "tools/unofficial-bambu-mcp/local_extension/ACTIVE_TABS.md",
+      "bytes": 4431,
+      "sha256": "953dbe4efeb3cdafc09bb4ab3d5ad907cf94cf21e6f36d8eddca735874d9e55e"
+    },
+    {
+      "path": "tools/unofficial-bambu-mcp/local_extension/StudioUi.cs",
+      "bytes": 51920,
+      "sha256": "ee6d5849b88f861f1675d838ec52f55612e331bbc7a01f5973ca98b09d0ae637"
     },
     {
       "path": "tools/unofficial-bambu-mcp/local_extension/__init__.py",
@@ -94,11 +109,6 @@
       "sha256": "2fadb43723b624d3ec0ad60f5a6c7a9dceb02aedd3aa1226ba59142fa3bb860f"
     },
     {
-      "path": "tools/unofficial-bambu-mcp/local_extension/StudioUi.cs",
-      "bytes": 35607,
-      "sha256": "6f0b589a31353c454c26ead8f2797e928b09e1b09c41e504357ab5c817bfa701"
-    },
-    {
       "path": "tools/unofficial-bambu-mcp/local_extension/ui.py",
       "bytes": 9935,
       "sha256": "cc28ca33bd075704805b2a2186b0acdd1fe76a68c454e08e39539cbb4c904ebb"
@@ -107,6 +117,11 @@
       "path": "tools/unofficial-bambu-mcp/requirements.lock.txt",
       "bytes": 674,
       "sha256": "64577c21762954e9076b87bc1b1f0fb220e2d6ff6f90c2420f4ea1372e8d6939"
+    },
+    {
+      "path": "tools/unofficial-bambu-mcp/tests/test_active_tab_protocol.py",
+      "bytes": 7551,
+      "sha256": "3a6c486d829e784d852040feaa750ab37fc2f4b10158009f100fd1773a7b1fc1"
     },
     {
       "path": "tools/unofficial-bambu-mcp/tests/test_dispatch.py",
@@ -127,18 +142,15 @@
       "path": "tools/unofficial-bambu-mcp/tests/test_ui.py",
       "bytes": 8199,
       "sha256": "8d00264508bf500c0c4331e959ed02cbe3680da8155271d68c3a16f64aecb04a"
-    },
-    {
-      "path": "VALIDATION.md",
-      "bytes": 2214,
-      "sha256": "b094f8eda40fc60bce1aae39458b651bdbf791292301be270771b54bed7f3d63"
     }
   ],
   "validation": {
-    "python_fake_tests_passed": 45,
-    "windows_fixture_tests_passed": 14,
+    "python_fake_tests_passed": 53,
+    "windows_fixture_tests_passed": 40,
     "clean_machine_installer_verified": false,
     "physical_extension_send_verified": false,
-    "certificate_pinning_provided": false
+    "certificate_pinning_provided": false,
+    "supported_active_tab_studio_version": "02.08.02.61",
+    "active_tab_live_navigation_verified": true
   }
 }

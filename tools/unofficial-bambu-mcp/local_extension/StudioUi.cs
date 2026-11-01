@@ -22,6 +22,9 @@ internal static class StudioUi
     private const string DefaultExe = @"C:\Program Files\Bambu Studio\bambu-studio.exe";
     private const int MaxElements = 1600;
     private const int MaxDepth = 45;
+    private const string AdapterVersion = "0.1.1";
+    private const string PlaterVersion = "02.08.02.61";
+    private const string PlaterProfile = "bambu-studio-02.08.02.61/wx-plater-v1";
     private static readonly JavaScriptSerializer Json = new JavaScriptSerializer { MaxJsonLength = 4000000 };
     private static bool ActionAttempted;
 
@@ -29,6 +32,9 @@ internal static class StudioUi
     [DllImport("user32.dll", SetLastError = true)] private static extern bool SetProcessDPIAware();
 
     [DllImport("user32.dll")] private static extern bool EnumWindows(EnumWindowProc cb, IntPtr p);
+    [DllImport("user32.dll")] private static extern bool EnumChildWindows(IntPtr parent, EnumWindowProc cb, IntPtr p);
+    [DllImport("user32.dll")] private static extern IntPtr GetParent(IntPtr hwnd);
+    [DllImport("user32.dll")] private static extern int GetDlgCtrlID(IntPtr hwnd);
     private delegate bool EnumWindowProc(IntPtr hwnd, IntPtr p);
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint pid);
     [DllImport("user32.dll")] private static extern bool IsWindow(IntPtr hwnd);
@@ -122,6 +128,7 @@ internal static class StudioUi
             var elements = new List<object>();
             foreach (Node node in nodes) elements.Add(node.Data);
             return Obj("ok", true, "window", WindowInfo(target), "elements", elements, "truncated", truncated,
+                "adapter_version", AdapterVersion, "active_tab", ReadActiveTab(target),
                 "snapshot_id", Hash(Json.Serialize(elements)), "read_at_utc", DateTime.UtcNow.ToString("o"));
         }
         if (operation != "act") throw new InvalidOperationException("Supported operations: inspect, act.");
@@ -148,9 +155,131 @@ internal static class StudioUi
         Recheck(active, chosen);
         string action = Text(request, "action", true);
         string value = Text(request, "value", false);
-        string method = Act(active, chosen, action, value);
-        return Obj("ok", true, "window", WindowInfo(active), "element", chosen.Data, "action", action,
+        string requestedTab = action == "click" ? NavigationTab(chosen, fresh) : null;
+        Dictionary<string, object> before = requestedTab == null ? null : ReadActiveTab(active);
+        bool alreadySelected = before != null && TabIs(before, requestedTab);
+        string method = alreadySelected ? "native_active_tab_noop" : Act(active, chosen, action, value);
+        var response = Obj("ok", true, "window", WindowInfo(active), "element", chosen.Data, "action", action,
+            "adapter_version", AdapterVersion,
             "method", method, "action_attempted", ActionAttempted, "outcome", ActionAttempted ? "invoked" : "already_in_requested_state");
+        if (requestedTab != null)
+        {
+            var verification = VerifyTabTransition(delegate { GetTarget(active.Window.ToInt64(), active.Exe); return ReadActiveTab(active); }, requestedTab, before, 24, 120);
+            response["verification"] = verification;
+            response["active_tab"] = verification["after"];
+            response["outcome"] = (bool)verification["confirmed"]
+                ? (ActionAttempted ? "tab_switch_confirmed" : "already_in_requested_state")
+                : (ActionAttempted ? "invoked_unconfirmed" : "not_dispatched_unconfirmed");
+        }
+        return response;
+    }
+
+    private static string NavigationRole(Node node)
+    {
+        var d = node.Data;
+        var parents = d["parent_names"] as List<string>;
+        if ((string)d["control_type"] != "ControlType.Pane" || (string)d["class_name"] != "wxWindowNR" ||
+            (int)d["depth"] != 3 || Convert.ToInt64(d["hwnd"]) <= 0 ||
+            parents == null || parents.Count == 0 || parents[0] != "control") return null;
+        string name = ((string)d["name"]).Trim().ToLowerInvariant();
+        if (name == "подготовка" || name == "prepare") return "prepare";
+        if (name == "предпросмотр нарезки" || name == "preview") return "preview";
+        return null;
+    }
+
+    private static string NavigationTab(Node chosen, List<Node> nodes)
+    {
+        string role = NavigationRole(chosen);
+        if (role == null) return null;
+        int prepare = 0, preview = 0;
+        foreach (Node node in nodes)
+        {
+            if ((string)node.Data["parent_token"] != (string)chosen.Data["parent_token"]) continue;
+            string candidate = NavigationRole(node);
+            if (candidate == "prepare") prepare++;
+            if (candidate == "preview") preview++;
+        }
+        return prepare == 1 && preview == 1 ? role : null;
+    }
+
+    private static bool TabIs(Dictionary<string, object> state, string expected)
+    {
+        return state != null && state.ContainsKey("verified") && state["verified"] is bool && (bool)state["verified"] &&
+            state.ContainsKey("id") && Object.Equals(state["id"], expected);
+    }
+
+    private static Dictionary<string, object> UnknownTab(string reason, string version, object evidence)
+    {
+        return Obj("id", null, "name", null, "verified", false, "source", "native_plater_visibility",
+            "profile", PlaterProfile, "studio_version", version, "reason", reason, "evidence", evidence);
+    }
+
+    private static Dictionary<string, object> ReadActiveTab(Target target)
+    {
+        string version = FileVersionInfo.GetVersionInfo(target.Exe).FileVersion;
+        if (!IsWindowEnabled(target.Window)) return UnknownTab("window_disabled_by_modal", version, null);
+        bool truncated;
+        var views = ReadNativeViews(target, out truncated);
+        if (truncated) return UnknownTab("native_enumeration_limit", version, null);
+        return AnalyzeNativeViews(version, views);
+    }
+
+    // Pinned BambuStudio v02.08.02.61 Plater.cpp creates View3D, Preview,
+    // Assemble as siblings (L6788), and Show/Hide selects the view (L11199).
+    // wx native control IDs in this exact build give the relative construction
+    // signature below. Require it rather than guessing roles from z-order,
+    // captions, the last click, or the shared sidebar. Other builds fail closed.
+    internal static Dictionary<string, object> AnalyzeNativeViews(string version, List<Dictionary<string, object>> views)
+    {
+        if (version != PlaterVersion) return UnknownTab("unsupported_studio_version", version, null);
+        if (views.Count != 3) return UnknownTab("expected_three_plater_canvas_branches", version, views);
+        var ordered = new List<Dictionary<string, object>>(views);
+        ordered.Sort(delegate(Dictionary<string, object> a, Dictionary<string, object> b) { return Convert.ToInt32(a["parent_id"]).CompareTo(Convert.ToInt32(b["parent_id"])); });
+        long container = Convert.ToInt64(ordered[0]["container_hwnd"]);
+        int containerId = Convert.ToInt32(ordered[0]["container_id"]);
+        int[] parentDelta = { 1, 5, 8 }, canvasDelta = { 3, 6, 9 };
+        var parents = new HashSet<long>();
+        var canvases = new HashSet<long>();
+        int visible = 0, selected = -1;
+        for (int i = 0; i < 3; i++)
+        {
+            var v = ordered[i];
+            if (container <= 0 || containerId >= -2000 || containerId < -32000 ||
+                Convert.ToInt64(v["container_hwnd"]) != container || Convert.ToInt32(v["container_id"]) != containerId ||
+                (string)v["class_name"] != "wxGLCanvas" || (string)v["parent_class"] != "wxWindowNR" || (string)v["container_class"] != "wxWindowNR" ||
+                !Object.Equals(v["same_process"], true) || !Object.Equals(v["owned"], true) ||
+                !parents.Add(Convert.ToInt64(v["parent_hwnd"])) || !canvases.Add(Convert.ToInt64(v["hwnd"])) ||
+                Convert.ToInt32(v["parent_id"]) != containerId + parentDelta[i] || Convert.ToInt32(v["control_id"]) != containerId + canvasDelta[i])
+                return UnknownTab("unsupported_plater_structure", version, ordered);
+            if (!Object.Equals(v["visible"], v["parent_visible"]) || !Object.Equals(v["container_visible"], true))
+                return UnknownTab("inconsistent_or_hidden_view_branch", version, ordered);
+            if (Object.Equals(v["visible"], true)) { visible++; selected = i; }
+        }
+        if (visible != 1) return UnknownTab(visible == 0 ? "no_visible_plater_view" : "ambiguous_visible_plater_views", version, ordered);
+        string[] ids = { "prepare", "preview", "assemble" }, names = { "Prepare", "Preview", "Assemble" };
+        return Obj("id", ids[selected], "name", names[selected], "verified", true, "source", "native_plater_visibility",
+            "profile", PlaterProfile, "studio_version", version, "reason", null, "evidence", ordered);
+    }
+
+    internal static Dictionary<string, object> VerifyTabTransition(Func<Dictionary<string, object>> read, string requested,
+        Dictionary<string, object> before, int maxPolls, int delayMs, int timeoutMs = 3500)
+    {
+        var timer = Stopwatch.StartNew();
+        Dictionary<string, object> after = null;
+        int stable = 0, polls = 0;
+        bool confirmed = false;
+        for (int i = 0; i < maxPolls && timer.ElapsedMilliseconds < timeoutMs; i++)
+        {
+            try { after = read(); }
+            catch (Exception) { after = UnknownTab("postcondition_read_failed", null, null); break; }
+            polls++;
+            stable = TabIs(after, requested) ? stable + 1 : 0;
+            if (stable >= 2 && timer.ElapsedMilliseconds < timeoutMs) { confirmed = true; break; }
+            if (delayMs > 0 && i + 1 < maxPolls) Thread.Sleep(delayMs);
+        }
+        return Obj("confirmed", confirmed, "requested_tab", requested, "before", before, "after", after,
+            "poll_count", polls, "stable_reads", stable, "timeout_ms", timeoutMs, "elapsed_ms", timer.ElapsedMilliseconds,
+            "reason", confirmed ? null : "active_tab_postcondition_not_confirmed");
     }
 
     private static readonly string[] IdentityKeys = { "token", "name", "control_type", "automation_id", "class_name", "hwnd", "parent_token", "process_id" };
@@ -399,6 +528,33 @@ internal static class StudioUi
         catch (InvalidOperationException) { }
     }
 
+    private static List<Dictionary<string, object>> ReadNativeViews(Target target, out bool truncated)
+    {
+        var views = new List<Dictionary<string, object>>();
+        int visited = 0;
+        bool reachedLimit = false;
+        EnumChildWindows(target.Window, delegate(IntPtr hwnd, IntPtr unused)
+        {
+            if (++visited > 6000) { reachedLimit = true; return false; }
+            uint pid;
+            GetWindowThreadProcessId(hwnd, out pid);
+            if (pid != target.Pid || Title(hwnd) != "GLCanvas") return true;
+            IntPtr parent = GetParent(hwnd), container = GetParent(parent);
+            uint parentPid, containerPid;
+            GetWindowThreadProcessId(parent, out parentPid);
+            GetWindowThreadProcessId(container, out containerPid);
+            views.Add(Obj("hwnd", hwnd.ToInt64(), "class_name", Class(hwnd), "control_id", GetDlgCtrlID(hwnd),
+                "visible", IsWindowVisible(hwnd), "parent_hwnd", parent.ToInt64(), "parent_id", GetDlgCtrlID(parent),
+                "parent_class", Class(parent), "parent_visible", IsWindowVisible(parent),
+                "container_hwnd", container.ToInt64(), "container_id", GetDlgCtrlID(container), "container_class", Class(container),
+                "container_visible", IsWindowVisible(container), "same_process", parentPid == target.Pid && containerPid == target.Pid,
+                "owned", IsChild(target.Window, container) && IsChild(container, parent) && GetParent(hwnd) == parent));
+            return true;
+        }, IntPtr.Zero);
+        truncated = reachedLimit;
+        return views;
+    }
+
     private static bool InWindow(IntPtr root, IntPtr child)
     {
         if (root == child || IsChild(root, child)) return true;
@@ -525,6 +681,7 @@ internal static class StudioUi
                         var stale = new Dictionary<string, object>(button); stale["name"] = "forged";
                         Test("reject_stale_identity", delegate { return Rejected(Obj("op", "act", "expected_exe", exe, "window_id", hwnd, "element", stale, "action", "click")); });
                         Test("reject_wrong_exe", delegate { return Rejected(Obj("op", "inspect", "expected_exe", DefaultExe, "window_id", hwnd)); });
+                        ActiveTabTests();
                     }
                     catch (Exception ex) { Failures++; Results.Add(Obj("name", "fixture_exception", "passed", false, "error", ex.ToString())); }
                     finally { form.BeginInvoke((Action)delegate { form.Close(); }); }
@@ -537,6 +694,53 @@ internal static class StudioUi
             Console.WriteLine(Json.Serialize(Obj("ok", Failures == 0, "failed", Failures, "tests", Results)));
             return Failures == 0 ? 0 : 1;
         }
+        private static List<Dictionary<string, object>> Views(int selected)
+        {
+            var rows = new List<Dictionary<string, object>>();
+            int[] parent = { 1, 5, 8 }, canvas = { 3, 6, 9 };
+            for (int i = 0; i < 3; i++) rows.Add(Obj("hwnd", 100L + i, "class_name", "wxGLCanvas", "control_id", -31000 + canvas[i],
+                "visible", i == selected, "parent_hwnd", 200L + i, "parent_id", -31000 + parent[i], "parent_class", "wxWindowNR",
+                "parent_visible", i == selected, "container_hwnd", 300L, "container_id", -31000, "container_class", "wxWindowNR",
+                "container_visible", true, "same_process", true, "owned", true));
+            return rows;
+        }
+        private static void ActiveTabTests()
+        {
+            Test("active_prepare", delegate { return TabIs(AnalyzeNativeViews(PlaterVersion, Views(0)), "prepare"); });
+            Test("active_preview", delegate { return TabIs(AnalyzeNativeViews(PlaterVersion, Views(1)), "preview"); });
+            Test("active_assemble", delegate { return TabIs(AnalyzeNativeViews(PlaterVersion, Views(2)), "assemble"); });
+            Test("active_independent_of_z_order", delegate { var v = Views(1); v.Reverse(); return TabIs(AnalyzeNativeViews(PlaterVersion, v), "preview"); });
+            Test("active_unknown_unsupported_version", delegate { return !(bool)AnalyzeNativeViews("other", Views(0))["verified"]; });
+            Test("active_unknown_missing_branch", delegate { var v = Views(0); v.RemoveAt(2); return !(bool)AnalyzeNativeViews(PlaterVersion, v)["verified"]; });
+            Test("active_unknown_changed_ids", delegate { var v = Views(0); v[1]["parent_id"] = -30000; return !(bool)AnalyzeNativeViews(PlaterVersion, v)["verified"]; });
+            Test("active_unknown_two_visible", delegate { var v = Views(0); v[1]["visible"] = v[1]["parent_visible"] = true; return !(bool)AnalyzeNativeViews(PlaterVersion, v)["verified"]; });
+            Test("active_unknown_none_visible", delegate { return !(bool)AnalyzeNativeViews(PlaterVersion, Views(-1))["verified"]; });
+            Test("active_unknown_mismatched_process", delegate { var v = Views(0); v[2]["same_process"] = false; return !(bool)AnalyzeNativeViews(PlaterVersion, v)["verified"]; });
+            Test("active_unknown_unowned_container", delegate { var v = Views(0); v[2]["owned"] = false; return !(bool)AnalyzeNativeViews(PlaterVersion, v)["verified"]; });
+            Test("active_unknown_duplicate_handle", delegate { var v = Views(0); v[1]["hwnd"] = v[0]["hwnd"]; return !(bool)AnalyzeNativeViews(PlaterVersion, v)["verified"]; });
+            Test("active_unknown_wrong_class", delegate { var v = Views(0); v[1]["class_name"] = "lookalike"; return !(bool)AnalyzeNativeViews(PlaterVersion, v)["verified"]; });
+            Test("active_unknown_hidden_container", delegate { var v = Views(0); v[0]["container_visible"] = false; return !(bool)AnalyzeNativeViews(PlaterVersion, v)["verified"]; });
+            Test("active_unknown_partial_branch", delegate { var v = Views(0); v[0]["visible"] = false; return !(bool)AnalyzeNativeViews(PlaterVersion, v)["verified"]; });
+            var before = AnalyzeNativeViews(PlaterVersion, Views(0));
+            Test("tab_verify_delayed_change", delegate { int reads = 0; var r = VerifyTabTransition(delegate { return AnalyzeNativeViews(PlaterVersion, Views(++reads >= 3 ? 1 : 0)); }, "preview", before, 6, 0); return (bool)r["confirmed"] && reads == 4 && (int)r["stable_reads"] == 2; });
+            Test("tab_verify_unchanged_is_unconfirmed", delegate { int reads = 0; var r = VerifyTabTransition(delegate { reads++; return before; }, "preview", before, 4, 0); return !(bool)r["confirmed"] && reads == 4; });
+            Test("tab_verify_requires_consecutive_reads", delegate { int reads = 0; var r = VerifyTabTransition(delegate { return AnalyzeNativeViews(PlaterVersion, Views(++reads % 2)); }, "preview", before, 5, 0); return !(bool)r["confirmed"] && reads == 5; });
+            Test("tab_verify_read_failure_is_unconfirmed", delegate { var r = VerifyTabTransition(delegate { throw new InvalidOperationException("fixture"); }, "preview", before, 5, 0); return !(bool)r["confirmed"] && (string)((Dictionary<string, object>)r["after"])["reason"] == "postcondition_read_failed"; });
+            Test("tab_verify_already_selected", delegate { int reads = 0; var r = VerifyTabTransition(delegate { reads++; return before; }, "prepare", before, 5, 0); return (bool)r["confirmed"] && reads == 2; });
+            Test("tab_verify_slow_read_cannot_confirm_past_deadline", delegate { int reads = 0; var r = VerifyTabTransition(delegate { if (++reads == 2) Thread.Sleep(50); return before; }, "prepare", before, 5, 0, 20); return !(bool)r["confirmed"] && reads == 2; });
+            Test("navigation_unique_pair", delegate { var a = NavigationNode("Подготовка", "a"); var b = NavigationNode("Предпросмотр нарезки", "b"); return NavigationTab(b, new List<Node> { a, b }) == "preview"; });
+            Test("navigation_reject_wrong_depth", delegate { var a = NavigationNode("Подготовка", "a"); var b = NavigationNode("Предпросмотр нарезки", "b"); b.Data["depth"] = 8; return NavigationTab(b, new List<Node> { a, b }) == null; });
+            Test("navigation_reject_wrong_class", delegate { var a = NavigationNode("Подготовка", "a"); var b = NavigationNode("Предпросмотр нарезки", "b"); b.Data["class_name"] = "lookalike"; return NavigationTab(b, new List<Node> { a, b }) == null; });
+            Test("navigation_reject_wrong_parent", delegate { var a = NavigationNode("Подготовка", "a"); var b = NavigationNode("Предпросмотр нарезки", "b"); b.Data["parent_names"] = new List<string> { "panel" }; return NavigationTab(b, new List<Node> { a, b }) == null; });
+            Test("navigation_reject_duplicate", delegate { var a = NavigationNode("Подготовка", "a"); var b = NavigationNode("Предпросмотр нарезки", "b"); var duplicate = NavigationNode("Подготовка", "duplicate"); return NavigationTab(b, new List<Node> { a, b, duplicate }) == null; });
+        }
+
+        private static Node NavigationNode(string name, string token)
+        {
+            return new Node { Data = Obj("name", name, "token", token, "parent_token", "toolbar", "control_type", "ControlType.Pane",
+                "class_name", "wxWindowNR", "depth", 3, "hwnd", 123L, "parent_names", new List<string> { "control" }) };
+        }
+
         private static Dictionary<string, object> Find(Dictionary<string, object> snapshot, string name)
         { return Find(snapshot, name, null); }
         private static Dictionary<string, object> Find(Dictionary<string, object> snapshot, string name, string controlType)

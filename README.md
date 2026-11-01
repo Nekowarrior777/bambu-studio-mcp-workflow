@@ -2,21 +2,23 @@
 
 A source-only Windows integration that combines `unofficial-bambu-mcp` project tools, an observed Bambu Studio UI adapter, independent printer/file validation and a reusable `bambu-print` skill.
 
-The local extension is **0.1.0**, built on `unofficial-bambu-mcp` **0.3.0**. It retains upstream tools and adds seven commands. It is a local extension, not an official Bambu Studio release or a replacement release of the upstream package.
+This source distribution is **0.1.1**. Its Python extension wrapper remains **0.1.0**, the native Windows UI adapter is **0.1.1**, and the upstream `unofficial-bambu-mcp` dependency remains **0.3.0**. It retains upstream tools and adds seven commands. It is a local extension, not an official Bambu Studio release or a replacement release of the upstream package.
 
 ## Capabilities
 
 | Tool | Purpose |
 |---|---|
 | `studio_ui_status` | Extension health and actual Studio windows |
-| `studio_ui_inspect` | Observed controls, identity, enabled state, values and supported patterns |
-| `studio_ui_action` | Buttons/tabs, fields, selection, expansion/collapse and explicit toggles |
+| `studio_ui_inspect` | Observed controls plus independently verified active-view evidence on supported Studio builds |
+| `studio_ui_action` | Observed UI actions; Prepare/Preview clicks include bounded native postcondition verification |
 | `studio_dispatch_diagnostics` | Read-only exact file and fresh printer diagnostics |
 | `studio_open_print_dialog` | Open the official dialog for a recorded exported artifact |
 | `studio_prepare_send` | Check readiness and bind an expiring one-use ticket |
 | `studio_submit_send` | Attempt final Send once and observe the corresponding printer job |
 
 UI control uses Windows UI Automation and, for custom wx controls, events bound to the control's own checked HWND. It does not depend on screenshot coordinates or move the global cursor. Each executed observation is consumed; inspect again after an action. Hidden/minimized windows and changed/disabled controls reject.
+
+Prepare/Preview verification currently supports **Bambu Studio 02.08.02.61** through a strict native-window profile. `active_tab.verified` reports whether the current state is known; `result.verification.confirmed` requires two consecutive reads of the requested state after at most one input. Unsupported or ambiguous layouts remain unknown, and an unconfirmed click is never automatically replayed. Read [active-tab verification](tools/unofficial-bambu-mcp/local_extension/ACTIVE_TABS.md) for the profile and result contract.
 
 Final Send is currently scoped to **P1S, 0.4 mm, Textured PEI and one external-spool material**. The skill routes read-only review, preparation and explicit print requests separately. It does not make ABS/90 °C a default for unrelated models and does not authorize background prints or external publication.
 
@@ -56,7 +58,7 @@ For a requested print, the flow is `send_to_printer(via='bambu_studio')` → `st
 
 ## Verification evidence and limits
 
-The staged public source passed **45/45 fake-adapter Python tests** and **14/14 isolated Windows-fixture checks**. Recorded development validation also included stdio tool discovery and reversible project-tab clicks in a real Studio window. No private screenshots, model files, printer identifiers or raw telemetry are included in this source distribution. See [VALIDATION.md](VALIDATION.md) for the evidence boundary.
+The staged public source passed **53/53 fake-adapter Python tests** and **40/40 isolated Windows-fixture checks**. Recorded development validation also included stdio tool discovery and a real Prepare -> Preview -> Prepare sequence, with independently confirmed native state after both input attempts. The original view and visible values were restored and the saved project remained unchanged. No private screenshots, model files, printer identifiers or raw telemetry are included in this source distribution. See [VALIDATION.md](VALIDATION.md) for the evidence boundary.
 
 **A clean-machine run of this installer is unverified. A fresh physical print through the extension's final Send path is unverified.** A prior print through official Studio was completed separately; that does not prove this extension's final dispatcher. No claim of a full security audit, production readiness or universal button support is made.
 

@@ -219,6 +219,8 @@ def studio_dispatch_diagnostics(file_path: str, printer_serial: str) -> dict:
 def studio_ui_inspect(window_id: int = 0, name_filter: str = "") -> dict:
     """Read Bambu Studio windows (window_id=0) or the actual controls of one returned window.
     Returns semantic names, tokens, parent names, enabled state, values and supported patterns.
+    active_tab reports independently observed native Plater visibility on supported Studio builds;
+    check verified and reason. Unsupported or ambiguous layouts return an unknown active tab.
     Control tokens are bound to a snapshot valid for 30 seconds. name_filter limits displayed controls.
     Does not press anything. Use this before each UI action."""
     return UI.inspect(window_id, name_filter)
@@ -230,6 +232,8 @@ def studio_ui_action(snapshot_id: str, element_token: str, action: str = "click"
     """Operate an observed Bambu Studio control after the user's request: click a button/tab, set_value,
     select an item, expand/collapse a dropdown, or toggle with value='on'/'off'. execute=False previews only.
     execute=True consumes the observation and attempts input once. Inspect again to verify the result.
+    Recognized Prepare/Preview clicks include result.verification.confirmed and before/after active_tab.
+    A confirmed transition requires two consecutive native state reads; unconfirmed input is never replayed.
     No guessed coordinates, arbitrary keyboard or other applications. Login/security and physical printer
     controls are excluded; use the printer MCP for those. Final Send uses studio_prepare_send/submit_send.
     Only perform the requested operation; capability installation is not authorization to change a live job."""
