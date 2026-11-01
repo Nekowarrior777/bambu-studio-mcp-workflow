@@ -1,6 +1,6 @@
 interface:
   display_name: "Bambu Print"
-  short_description: "Проекты Bambu Studio, печать P1S, статус и камера"
-  default_prompt: "Используй $bambu-print для работы с Bambu Studio и P1S согласно моему поручению."
+  short_description: "Bambu Studio projects, P1S printing, status and camera"
+  default_prompt: "Use $bambu-print to work with Bambu Studio and P1S as requested."
 policy:
   allow_implicit_invocation: true

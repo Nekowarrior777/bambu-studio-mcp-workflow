@@ -45,8 +45,8 @@
     },
     {
       "path": "skills/bambu-print/agents/openai.yaml",
-      "bytes": 325,
-      "sha256": "a051a07c5282a16605f88e199db8d9f787b5c3f8b4a4c8bf18b53b78061c0466"
+      "bytes": 246,
+      "sha256": "ecb06e48766683f456ed31ad46b13595cd60c8d84534eb18c4ba10a8385afff5"
     },
     {
       "path": "skills/bambu-print/references/local-setup.md",
