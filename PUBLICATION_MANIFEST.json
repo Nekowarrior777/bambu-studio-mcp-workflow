@@ -25,8 +25,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 6920,
-      "sha256": "f72de4e76a12d3f8f80daf4049e8284b9f6dddc5a4a0cf4ed736d0d56ad86168"
+      "bytes": 8649,
+      "sha256": "c1e244c8ccbf25b7658f1d461530eee535019908c0c477a75406ab413112288a"
     },
     {
       "path": "SECURITY.md",
@@ -42,6 +42,31 @@
       "path": "VALIDATION.md",
       "bytes": 3526,
       "sha256": "5f9bbf66fe6f9fba3efc3672b474be6018a8258c5a27a7e84b0247a5b4ecedf4"
+    },
+    {
+      "path": "docs/GETTING_STARTED.md",
+      "bytes": 8323,
+      "sha256": "78fec3ccbb13c7e7ba27f53af760f6aee6eb6b464059dc89b8f2705ada9baf4c"
+    },
+    {
+      "path": "docs/TROUBLESHOOTING.md",
+      "bytes": 6970,
+      "sha256": "350db97fb26502caa3949e40ea4b0319801c80dbf18977ba970844886d634478"
+    },
+    {
+      "path": "docs/assets/verified-navigation.svg",
+      "bytes": 2559,
+      "sha256": "68ab494e660e4bf73655255ee22122946c507b0977419e05407ad85a421b7cf1"
+    },
+    {
+      "path": "examples/codex.mcp.example.toml",
+      "bytes": 1069,
+      "sha256": "4d67bea6965287c810d81c3727cb8f17f7ec42fdb9f36fd27e9ac7b68d9a82a8"
+    },
+    {
+      "path": "examples/mcp-servers.example.json",
+      "bytes": 913,
+      "sha256": "177d52935c64921a5f2c2e621170b51ddd90ef10a45dd73c77a119b30a046725"
     },
     {
       "path": "examples/printer-bindings.example.json",
@@ -152,5 +177,6 @@
     "certificate_pinning_provided": false,
     "supported_active_tab_studio_version": "02.08.02.61",
     "active_tab_live_navigation_verified": true
-  }
+  },
+  "documentation_revision": "2026-11-01-onboarding"
 }

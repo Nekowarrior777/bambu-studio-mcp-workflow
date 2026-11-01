@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="284" viewBox="0 0 1180 284" role="img" aria-labelledby="title desc">
+  <title id="title">Illustration of verified Prepare and Preview navigation</title>
+  <desc id="desc">Example MCP readback starts in Prepare, confirms Preview after one click, and confirms restoration of Prepare. Each transition requires two consecutive native state reads. No model or printer identifiers are shown.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#64748b" stroke-width="1.5"/></marker>
+  </defs>
+  <rect x="1" y="1" width="1178" height="282" rx="18" fill="#f8fafc" stroke="#cbd5e1"/>
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <text x="28" y="34" fill="#0f172a" font-size="20" font-weight="600">Verified tab navigation</text>
+    <text x="28" y="58" fill="#475569" font-size="13">Illustrative protocol values · state is read independently of the requested click</text>
+    <g fill="#ffffff" stroke="#cbd5e1">
+      <rect x="28" y="90" width="280" height="134" rx="12"/>
+      <rect x="450" y="90" width="280" height="134" rx="12"/>
+      <rect x="872" y="90" width="280" height="134" rx="12"/>
+    </g>
+    <g fill="#0f172a" font-size="20" font-weight="600">
+      <text x="48" y="124">1 · Prepare</text>
+      <text x="470" y="124">2 · Preview</text>
+      <text x="892" y="124">3 · Prepare restored</text>
+    </g>
+    <g font-family="Consolas, monospace" fill="#334155" font-size="14">
+      <text x="48" y="155">active_tab.id: prepare</text>
+      <text x="470" y="155">active_tab.id: preview</text>
+      <text x="892" y="155">active_tab.id: prepare</text>
+    </g>
+    <g fill="#047857" font-size="14" font-weight="600">
+      <text x="48" y="193">verified: true</text>
+      <text x="470" y="193">confirmed: true</text>
+      <text x="892" y="193">confirmed: true</text>
+    </g>
+    <g stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrow)">
+      <path d="M322 150 H434"/>
+      <path d="M744 150 H856"/>
+    </g>
+    <g fill="#475569" font-size="12" text-anchor="middle">
+      <text x="378" y="130">click Preview</text>
+      <text x="378" y="177">two state reads</text>
+      <text x="800" y="130">click Prepare</text>
+      <text x="800" y="177">two state reads</text>
+    </g>
+    <text x="28" y="257" fill="#64748b" font-size="12">Example values only. No model, camera image, connection data or printer command is part of this illustration.</text>
+  </g>
+</svg>

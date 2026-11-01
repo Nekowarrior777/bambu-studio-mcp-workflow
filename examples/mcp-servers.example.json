@@ -1,0 +1,29 @@
+{
+  "mcpServers": {
+    "unofficial-bambu": {
+      "command": "<REPOSITORY_DIR>/tools/unofficial-bambu-mcp/.venv/Scripts/python.exe",
+      "args": ["<REPOSITORY_DIR>/tools/unofficial-bambu-mcp/enhanced_server.py"],
+      "env": {
+        "BAMBU_STUDIO_EXE": "<BAMBU_STUDIO_EXE>",
+        "BAMBU_STUDIO_RESOURCES": "<STUDIO_RESOURCES_DIR>",
+        "BAMBU_STUDIO_DATA": "<STUDIO_DATA_DIR>",
+        "LOCALAPPDATA": "<LOCAL_APP_DATA_DIR>",
+        "UBMCP_DIR": "<PROJECT_OUTPUT_DIR>",
+        "PYTHONIOENCODING": "utf-8",
+        "PYTHONUTF8": "0",
+        "TEMP": "<MCP_TEMP_DIR>",
+        "TMP": "<MCP_TEMP_DIR>"
+      }
+    },
+    "bambu-printer": {
+      "command": "<NODE_EXE>",
+      "args": [
+        "--env-file=<LOCAL_APP_DATA_DIR>/BambuPrinterMCP/printer.env",
+        "<REPOSITORY_DIR>/tools/bambu-printer-mcp/dist/index.js"
+      ],
+      "env": {
+        "MCP_TRANSPORT": "stdio"
+      }
+    }
+  }
+}
