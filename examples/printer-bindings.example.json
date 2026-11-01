@@ -1,0 +1,7 @@
+{
+  "YOUR_PRINTER_SERIAL": {
+    "studio_name": "YOUR_VISIBLE_PRINTER_NAME",
+    "model": "p1s",
+    "evidence": "Record how this visible Studio name was verified against your printer serial. Never put the LAN access code here."
+  }
+}
